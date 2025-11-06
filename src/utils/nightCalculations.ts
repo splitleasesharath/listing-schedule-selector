@@ -20,8 +20,8 @@ export const calculateCheckInCheckOut = (days: Day[]): {
   }
   const sorted = sortDays(days);
   const checkIn = sorted[0];
-  const lastDay = sorted[sorted.length - 1];
-  const checkOut = getNextDay(lastDay);
+  // Checkout is the last selected day, not the day after
+  const checkOut = sorted[sorted.length - 1];
   return { checkIn, checkOut };
 };
 

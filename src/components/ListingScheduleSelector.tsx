@@ -23,6 +23,7 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
 }) => {
   const {
     selectedDays,
+    selectedNights,
     allDays,
     nightsCount,
     priceBreakdown,
@@ -73,21 +74,29 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
       </div>
 
       <div className="selection-info">
-        {nightsCount > 0 && (
+        {selectedDays.length > 0 && (
           <>
             <div className="info-row">
+              <span className="info-label">Days Selected:</span>
+              <span className="info-value">
+                {selectedDays.map(d => d.first3Letters).join(', ')} ({selectedDays.length} days)
+              </span>
+            </div>
+            <div className="info-row">
               <span className="info-label">Nights Selected:</span>
-              <span className="info-value">{nightsCount}</span>
+              <span className="info-value">
+                {selectedNights.map(n => n.first3Letters).join(', ')} ({nightsCount} nights)
+              </span>
             </div>
             {checkInDay && (
               <div className="info-row">
-                <span className="info-label">Check-in:</span>
+                <span className="info-label">Check-in Day:</span>
                 <span className="info-value">{checkInDay.name} at {listing.checkInTime}</span>
               </div>
             )}
             {checkOutDay && (
               <div className="info-row">
-                <span className="info-label">Check-out:</span>
+                <span className="info-label">Check-out Day:</span>
                 <span className="info-value">{checkOutDay.name} at {listing.checkOutTime}</span>
               </div>
             )}
