@@ -1,0 +1,45 @@
+.day-button {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #6B6B6B;
+  border-radius: 5px;
+  background-color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.day-button:hover:not(.disabled):not(.not-clickable) {
+  background-color: #f0f0f0;
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.day-button.selected {
+  background-color: #4F3097;
+  color: #FFFFFF;
+  border-color: #4F3097;
+}
+
+.day-button.disabled,
+.day-button.not-clickable {
+  background-color: #B2B2B2;
+  color: #4D4D4D;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.day-button:active:not(.disabled):not(.not-clickable) {
+  transform: scale(0.95);
+}
+
+.day-button:focus {
+  outline: 2px solid #4F3097;
+  outline-offset: 2px;
+}
