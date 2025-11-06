@@ -50,54 +50,68 @@ export const isContiguous = (days: Day[]): boolean => {
   const sorted = sortDays(days);
   const dayNumbers = sorted.map(d => d.dayOfWeek);
 
-  // Check for normal contiguity (no week wrap)
-  let normallyContiguous = true;
-  for (let i = 0; i < dayNumbers.length - 1; i++) {
-    if (dayNumbers[i + 1] - dayNumbers[i] !== 1) {
-      normallyContiguous = false;
-      break;
-    }
-  }
-  if (normallyContiguous) return true;
+  console.log('🔍 Checking contiguity (Bubble logic) for days:', dayNumbers);
 
-  // Check for week wrap-around (e.g., Thu-Fri-Sat-Sun-Mon or Sat-Sun-Mon)
-  // This happens when we have Sunday (0) and the days wrap around the week boundary
-  if (dayNumbers.includes(0)) {
-    // Split into two groups: days starting from Sunday and days before Sunday
-    const sundayIndex = dayNumbers.indexOf(0);
-    const daysFromSunday = dayNumbers.slice(0, sundayIndex + 1); // [0, 1, 2, ...]
-    const daysBeforeSunday = dayNumbers.slice(sundayIndex + 1); // [4, 5, 6, ...]
+  // Calculate NOT selected days
+  const allDays = [0, 1, 2, 3, 4, 5, 6];
+  const notSelectedDays = allDays.filter(d => !dayNumbers.includes(d));
 
-    // For wrap-around to be valid:
-    // 1. Days from Sunday should be contiguous starting from 0
-    // 2. Days before Sunday should be contiguous ending at 6
-    // 3. The last day before Sunday should be 6 (Saturday)
+  console.log('  Not selected days:', notSelectedDays);
 
-    if (daysBeforeSunday.length > 0) {
-      // Check if daysFromSunday are contiguous from 0
-      let contiguousFromSunday = true;
-      for (let i = 0; i < daysFromSunday.length; i++) {
-        if (daysFromSunday[i] !== i) {
-          contiguousFromSunday = false;
-          break;
-        }
-      }
-
-      // Check if daysBeforeSunday are contiguous
-      let contiguousBeforeSunday = true;
-      for (let i = 0; i < daysBeforeSunday.length - 1; i++) {
-        if (daysBeforeSunday[i + 1] - daysBeforeSunday[i] !== 1) {
-          contiguousBeforeSunday = false;
-          break;
-        }
-      }
-
-      // Check if it ends with Saturday (6)
-      const endsWithSaturday = daysBeforeSunday[daysBeforeSunday.length - 1] === 6;
-
-      return contiguousFromSunday && contiguousBeforeSunday && endsWithSaturday;
-    }
+  // Bubble Logic 1: If 6+ days selected, automatically contiguous
+  if (dayNumbers.length >= 6) {
+    console.log('✅ 6+ days selected - automatically contiguous');
+    return true;
   }
 
-  return false;
+  // Bubble Logic 2: If NOT selected days >= 6 (only 1 day selected), need more nights
+  if (notSelectedDays.length >= 6) {
+    console.log('❌ Only 1 day selected - need more nights');
+    return false;
+  }
+
+  // Check if both Sunday (0) AND Saturday (6) are selected
+  const hasSunday = dayNumbers.includes(0);
+  const hasSaturday = dayNumbers.includes(6);
+
+  if (hasSunday && hasSaturday) {
+    // Bubble's clever logic: Check if the GAP (not selected days) is contiguous
+    // If the gap is contiguous, then selected days wrap around correctly!
+    console.log('🔄 Week wrap-around case: checking if NOT selected days are contiguous...');
+
+    if (notSelectedDays.length === 0) {
+      console.log('✅ All days selected');
+      return true;
+    }
+
+    // Check if not selected days form a contiguous block
+    const gapContiguous = checkDaysContiguous(notSelectedDays);
+    console.log(gapContiguous ? '✅ Gap is contiguous = selection wraps correctly' : '❌ Gap has breaks = invalid wrap');
+    return gapContiguous;
+  }
+
+  // Normal case: check if selected days are contiguous
+  console.log('📅 Normal case: checking if selected days are contiguous...');
+  const result = checkDaysContiguous(dayNumbers);
+  console.log(result ? '✅ Contiguous' : '❌ Not contiguous');
+  return result;
 };
+
+// Helper function to check if an array of day numbers is contiguous
+function checkDaysContiguous(dayNumbers: number[]): boolean {
+  if (dayNumbers.length === 0) return true;
+  if (dayNumbers.length === 1) return true;
+
+  const sorted = [...dayNumbers].sort((a, b) => a - b);
+  const minIndex = Math.min(...sorted);
+  const maxIndex = Math.max(...sorted);
+
+  // Create expected sequence from min to max
+  const expectedSequence = [];
+  for (let i = minIndex; i <= maxIndex; i++) {
+    expectedSequence.push(i);
+  }
+
+  // Check if sorted days match expected sequence
+  return expectedSequence.every((day, index) => day === sorted[index]);
+}
