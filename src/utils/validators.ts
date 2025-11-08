@@ -6,16 +6,27 @@ export const validateDaySelection = (
   selectedDays: Day[],
   listing: Listing
 ): { isValid: boolean; error?: string } => {
+  console.log('🔍 Validating day selection:', {
+    dayOfWeek: day.dayOfWeek,
+    dayName: day.name,
+    listingDaysAvailable: listing.daysAvailable,
+    isDayInAvailableList: listing.daysAvailable.includes(day.dayOfWeek)
+  });
+
   if (selectedDays.some(d => d.dayOfWeek === day.dayOfWeek)) {
+    console.log('❌ Day already selected');
     return { isValid: false, error: 'Day already selected' };
   }
   if (selectedDays.length >= 7) {
+    console.log('❌ Maximum 7 days reached');
     return { isValid: false, error: 'Maximum 7 days can be selected' };
   }
   if (!listing.daysAvailable.includes(day.dayOfWeek)) {
+    console.log('❌ Day not in listing.daysAvailable array');
     return { isValid: false, error: 'Day not available for this listing' };
   }
   if (!day.isAvailable) {
+    console.log('❌ day.isAvailable is false');
     return { isValid: false, error: 'This day is not available' };
   }
   const testSelection = sortDays([...selectedDays, day]);

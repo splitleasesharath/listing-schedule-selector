@@ -1,20 +1,33 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Day, Listing, Night, PriceBreakdown, ErrorState } from '../types';
+import { Day, Listing, Night, PriceBreakdown, ErrorState, ZATPriceConfiguration } from '../types';
 import { validateDaySelection, validateDayRemoval, isContiguous } from '../utils/validators';
 import { calculateNightsFromDays, calculateCheckInCheckOut, countSelectedNights } from '../utils/nightCalculations';
 import { calculatePrice } from '../utils/priceCalculations';
 import { sortDays, getNotSelectedDays, createAllDays, getUnusedNights, createNightsFromDays } from '../utils/dayHelpers';
 
+// Default ZAT configuration
+const DEFAULT_ZAT_CONFIG: ZATPriceConfiguration = {
+  unusedNightsDiscountMultiplier: 0.03,
+  weeklyPriceAdjust: 0,
+  overallSiteMarkup: 0.17,
+  averageDaysPerMonth: 31,
+  fullTimeDiscount: 0.13
+};
+
 interface UseScheduleSelectorProps {
   listing: Listing;
   initialSelectedDays?: Day[];
   limitToFiveNights?: boolean;
+  zatConfig?: ZATPriceConfiguration;
+  reservationSpanWeeks?: number;
 }
 
 export const useScheduleSelector = ({
   listing,
   initialSelectedDays = [],
-  limitToFiveNights = false
+  limitToFiveNights = false,
+  zatConfig = DEFAULT_ZAT_CONFIG,
+  reservationSpanWeeks = 13
 }: UseScheduleSelectorProps) => {
   const [selectedDays, setSelectedDays] = useState<Day[]>(initialSelectedDays);
   const [errorState, setErrorState] = useState<ErrorState>({
@@ -50,8 +63,8 @@ export const useScheduleSelector = ({
   }, [selectedDays]);
 
   const priceBreakdown = useMemo(() => {
-    return calculatePrice(selectedNights, listing);
-  }, [selectedNights, listing]);
+    return calculatePrice(selectedNights, listing, zatConfig, reservationSpanWeeks);
+  }, [selectedNights, listing, zatConfig, reservationSpanWeeks]);
 
   const unusedNights = useMemo(() => {
     const allNights = createNightsFromDays(allDays);

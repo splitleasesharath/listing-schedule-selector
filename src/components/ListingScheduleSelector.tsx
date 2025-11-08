@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, Day } from '../types';
+import { Listing, Day, ZATPriceConfiguration } from '../types';
 import { useScheduleSelector } from '../hooks/useScheduleSelector';
 import { DayButton } from './DayButton';
 import { ErrorOverlay } from './ErrorOverlay';
@@ -12,6 +12,8 @@ interface ListingScheduleSelectorProps {
   limitToFiveNights?: boolean;
   onScheduleSave?: (selectedDays: Day[]) => void;
   showPricing?: boolean;
+  zatConfig?: ZATPriceConfiguration;
+  reservationSpanWeeks?: number;
 }
 
 export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = ({
@@ -19,7 +21,9 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
   initialSelectedDays = [],
   limitToFiveNights = false,
   onScheduleSave,
-  showPricing = true
+  showPricing = true,
+  zatConfig,
+  reservationSpanWeeks = 13
 }) => {
   const {
     selectedDays,
@@ -39,7 +43,9 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
   } = useScheduleSelector({
     listing,
     initialSelectedDays,
-    limitToFiveNights
+    limitToFiveNights,
+    zatConfig,
+    reservationSpanWeeks
   });
 
   const handleSave = () => {

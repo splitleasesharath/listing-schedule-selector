@@ -2,6 +2,7 @@ export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type RentalType = 'Monthly' | 'Weekly' | 'Nightly';
 export type AlertType = 'error' | 'warning' | 'info' | 'success';
 export type CheckInOutTime = '11:00 am' | '12:00 pm' | '1:00 pm' | '2:00 pm' | '3:00 pm';
+export type ReservationSpan = 6 | 7 | 8 | 9 | 10 | 12 | 13 | 16 | 17 | 20 | 22 | 26; // weeks
 
 export interface Day {
   id: string;
@@ -51,6 +52,8 @@ export interface PricingList {
 
 export interface Listing {
   id: string;
+  name?: string;
+  displayName?: string;
   firstAvailable: Date;
   lastAvailable: Date;
   numberOfNightsAvailable: number;
@@ -71,6 +74,11 @@ export interface Listing {
   maximumNights: number;
   daysAvailable: DayOfWeek[];
   daysNotAvailable: DayOfWeek[];
+  monthlyHostRate?: number;
+  weeklyHostRate?: number;
+  weeksOffered?: string; // e.g., "Every Week", "1 on 1 off", "2 on 2 off"
+  cleaningCost?: number;
+  damageDeposit?: number;
 }
 
 export interface PriceBreakdown {
@@ -83,6 +91,7 @@ export interface PriceBreakdown {
   numberOfNights: number;
   fourWeekRent?: number;
   initialPayment?: number;
+  totalReservationPrice?: number;
 }
 
 export interface ScheduleState {
@@ -124,4 +133,12 @@ export interface ErrorState {
   hasError: boolean;
   errorType: 'minimum_nights' | 'maximum_nights' | 'availability' | 'contiguity' | 'days_selected' | 'nights_outside_host' | null;
   errorMessage: string;
+}
+
+export interface ZATPriceConfiguration {
+  unusedNightsDiscountMultiplier: number;
+  weeklyPriceAdjust: number;
+  overallSiteMarkup: number;
+  averageDaysPerMonth: number;
+  fullTimeDiscount: number; // For 7 nights
 }

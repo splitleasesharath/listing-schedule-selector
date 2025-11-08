@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { ListingScheduleSelector } from './components/ListingScheduleSelector';
 import { getMockListing } from './services/supabase';
-import { fetchListingsFromBubble, fetchListingById } from './services/bubble';
-import { Listing } from './types';
+import { fetchListingsFromBubble, fetchListingById, fetchZATPriceConfiguration } from './services/bubble';
+import { Listing, ReservationSpan, ZATPriceConfiguration } from './types';
 import './PreviewApp.css';
 
 export const PreviewApp: React.FC = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [selectedListingId, setSelectedListingId] = useState<string>('');
   const [listing, setListing] = useState<Listing | null>(null);
+  const [reservationSpan, setReservationSpan] = useState<ReservationSpan | null>(13);
+  const [customReservationSpan, setCustomReservationSpan] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [loadingListing, setLoadingListing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [zatConfig, setZatConfig] = useState<ZATPriceConfiguration | null>(null);
 
-  // Load listings on mount
+  // Load listings and ZAT config on mount
   useEffect(() => {
-    const loadListings = async () => {
+    const loadData = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        // Load ZAT Price Configuration
+        const config = await fetchZATPriceConfiguration();
+        setZatConfig(config);
+
+        // Load listings
         const bubbleListings = await fetchListingsFromBubble();
 
         if (bubbleListings.length === 0) {
@@ -42,7 +50,7 @@ export const PreviewApp: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('Error loading listings:', err);
+        console.error('Error loading data:', err);
         setError('Failed to load listings. Using mock data.');
         // Fallback to mock data
         const mockListing = getMockListing();
@@ -55,7 +63,7 @@ export const PreviewApp: React.FC = () => {
       }
     };
 
-    loadListings();
+    loadData();
   }, []);
 
   // Load selected listing
@@ -107,23 +115,89 @@ export const PreviewApp: React.FC = () => {
       </header>
 
       <div className="listing-selector-container">
-        <label htmlFor="listing-dropdown" className="listing-dropdown-label">
-          Select a Listing:
-        </label>
-        <select
-          id="listing-dropdown"
-          className="listing-dropdown"
-          value={selectedListingId}
-          onChange={handleListingChange}
-          disabled={loadingListing}
-        >
-          <option value="">-- Select a listing --</option>
-          {listings.map(l => (
-            <option key={l.id} value={l.id}>
-              Listing {l.id} - Min: {l.minimumNights} nights, Max: {l.maximumNights || 'N/A'} nights
-            </option>
-          ))}
-        </select>
+        <div className="selector-row">
+          <div className="selector-column">
+            <label htmlFor="listing-dropdown" className="listing-dropdown-label">
+              Select a Listing:
+            </label>
+            <select
+              id="listing-dropdown"
+              className="listing-dropdown"
+              value={selectedListingId}
+              onChange={handleListingChange}
+              disabled={loadingListing}
+            >
+              <option value="">-- Select a listing --</option>
+              {listings.map(l => (
+                <option key={l.id} value={l.id}>
+                  {l.displayName || l.name || `Listing ${l.id.substring(0, 8)}`} - Min: {l.minimumNights} nights, Max: {l.maximumNights || 'N/A'} nights
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="selector-column">
+            <label htmlFor="reservation-span-dropdown" className="listing-dropdown-label">
+              Reservation Span (weeks):
+            </label>
+            <select
+              id="reservation-span-dropdown"
+              className="listing-dropdown"
+              value={reservationSpan || 'custom'}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === 'custom') {
+                  setReservationSpan(null);
+                } else {
+                  setReservationSpan(parseInt(value) as ReservationSpan);
+                  setCustomReservationSpan('');
+                }
+              }}
+            >
+              <option value={6}>6 weeks</option>
+              <option value={7}>7 weeks</option>
+              <option value={8}>8 weeks</option>
+              <option value={9}>9 weeks</option>
+              <option value={10}>10 weeks</option>
+              <option value={12}>12 weeks</option>
+              <option value={13}>13 weeks (3 months)</option>
+              <option value={16}>16 weeks</option>
+              <option value={17}>17 weeks</option>
+              <option value={20}>20 weeks</option>
+              <option value={22}>22 weeks</option>
+              <option value={26}>26 weeks (6 months)</option>
+              <option value="custom">Other (custom)</option>
+            </select>
+            {reservationSpan === null && (
+              <input
+                type="number"
+                className="listing-dropdown"
+                placeholder="Enter custom weeks"
+                value={customReservationSpan}
+                onChange={(e) => setCustomReservationSpan(e.target.value)}
+                min="1"
+                style={{ marginTop: '8px' }}
+              />
+            )}
+          </div>
+        </div>
+
+        {listing && (
+          <div className="listing-id-display">
+            <strong>Listing Unique ID:</strong>
+            <code className="listing-id-code">{listing.id}</code>
+            <button
+              className="copy-id-button"
+              onClick={() => {
+                navigator.clipboard.writeText(listing.id);
+                alert('Listing ID copied to clipboard!');
+              }}
+              title="Copy ID to clipboard"
+            >
+              📋 Copy
+            </button>
+          </div>
+        )}
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -131,11 +205,13 @@ export const PreviewApp: React.FC = () => {
       <div className="preview-component">
         {loadingListing ? (
           <div className="loading">Loading listing details...</div>
-        ) : listing ? (
+        ) : listing && zatConfig ? (
           <ListingScheduleSelector
             listing={listing}
             onScheduleSave={handleScheduleSave}
             showPricing={true}
+            zatConfig={zatConfig}
+            reservationSpanWeeks={reservationSpan || parseInt(customReservationSpan) || 13}
           />
         ) : (
           <div className="no-listing">Please select a listing</div>

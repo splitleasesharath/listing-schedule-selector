@@ -46,13 +46,31 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({
         </div>
       )}
       <div className="price-row total">
-        <span>Total Price:</span>
+        <span>Total Price ({priceBreakdown.numberOfNights} nights):</span>
         <span>{formatPrice(priceBreakdown.totalPrice)}</span>
       </div>
       <div className="price-row per-night">
         <span>Per Night:</span>
         <span>{formatPrice(priceBreakdown.pricePerNight)}</span>
       </div>
+      {priceBreakdown.fourWeekRent && (
+        <div className="price-row highlight">
+          <span>4-Week Rent:</span>
+          <span>{formatPrice(priceBreakdown.fourWeekRent)}</span>
+        </div>
+      )}
+      {priceBreakdown.initialPayment && (
+        <div className="price-row highlight">
+          <span>Initial Payment:</span>
+          <span>{formatPrice(priceBreakdown.initialPayment)}</span>
+        </div>
+      )}
+      {priceBreakdown.totalReservationPrice && (
+        <div className="price-row reservation-total">
+          <span>Total Reservation Price:</span>
+          <span>{formatPrice(priceBreakdown.totalReservationPrice)}</span>
+        </div>
+      )}
     </div>
   );
 };
