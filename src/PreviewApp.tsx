@@ -40,7 +40,17 @@ export const PreviewApp: React.FC = () => {
           setListing(mockListing);
           setUsingMockData(true);
         } else {
-          // Use Bubble listings
+          // Log rental type distribution
+          const rentalTypes = bubbleListings.reduce((acc, l) => {
+            const type = l.rentalType || 'undefined';
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+
+          console.log('📊 Total listings:', bubbleListings.length);
+          console.log('📊 Rental type distribution:', rentalTypes);
+
+          // Use Bubble listings (no filter)
           setListings(bubbleListings);
           setUsingMockData(false);
           // Auto-select first listing
@@ -130,7 +140,7 @@ export const PreviewApp: React.FC = () => {
               <option value="">-- Select a listing --</option>
               {listings.map(l => (
                 <option key={l.id} value={l.id}>
-                  {l.displayName || l.name || `Listing ${l.id.substring(0, 8)}`} - Min: {l.minimumNights} nights, Max: {l.maximumNights || 'N/A'} nights
+                  {l.displayName || l.name || `Listing ${l.id.substring(0, 8)}`} - {l.rentalType || 'N/A'} - Weekly Rate: ${l.weeklyHostRate || 'N/A'}
                 </option>
               ))}
             </select>

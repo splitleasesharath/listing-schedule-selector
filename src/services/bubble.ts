@@ -32,8 +32,10 @@ interface BubbleListing {
   '💰Weekly Host Rate'?: number;
   '💰Cleaning Cost / Maintenance Fee'?: number;
   '💰Damage Deposit'?: number;
+  '💰Unit Markup'?: number;
   cleaningCost?: number;
   damageDeposit?: number;
+  unitMarkup?: number;
   // Pricing list reference
   pricing_list?: string;
   'Pricing List': {
@@ -166,7 +168,8 @@ export const transformBubbleListing = (bubbleListing: BubbleListing): Listing =>
     weeklyHostRate: bubbleListing['💰Weekly Host Rate'],
     weeksOffered: bubbleListing['Weeks offered'],
     cleaningCost: bubbleListing['💰Cleaning Cost / Maintenance Fee'],
-    damageDeposit: bubbleListing['💰Damage Deposit']
+    damageDeposit: bubbleListing['💰Damage Deposit'],
+    unitMarkup: bubbleListing['💰Unit Markup'] || bubbleListing['Pricing List']?.['Unit Markup'] || 0
   };
 };
 
@@ -219,15 +222,28 @@ export const fetchListingsFromBubble = async (): Promise<Listing[]> => {
       return [];
     }
 
-    // Filter for active listings only (other fields may not be exposed in API)
+    // Filter listings: Complete is yes, Pricing List is not empty, Rental type is not empty
     const filtered = listings.filter(listing => {
-      const isActive = listing.Active === true;
+      const isComplete = listing.Complete === true;
+      const hasPricingList = listing.pricing_list != null && listing.pricing_list !== '';
+      const hasRentalType = listing['rental type'] != null && listing['rental type'] !== '';
 
-      if (!isActive) {
-        console.log(`  Filtered out listing ${listing._id}: Active=${listing.Active}`);
+      // Log specific listing if it matches the ID we're looking for
+      if (listing._id === '1752444372497x823407616678428700') {
+        console.log(`  🔍 Found target listing ${listing._id}:`, {
+          Complete: listing.Complete,
+          pricing_list: listing.pricing_list,
+          'rental type': listing['rental type'],
+          Name: listing.Name,
+          passes: isComplete && hasPricingList && hasRentalType
+        });
       }
 
-      return isActive;
+      if (!isComplete || !hasPricingList || !hasRentalType) {
+        console.log(`  Filtered out listing ${listing._id}: Complete=${listing.Complete}, has pricing_list=${hasPricingList}, has rental_type=${hasRentalType}`);
+      }
+
+      return isComplete && hasPricingList && hasRentalType;
     });
 
     console.log('  Filtered listings (active only):', filtered.length);

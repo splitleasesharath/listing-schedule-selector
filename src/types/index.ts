@@ -79,6 +79,7 @@ export interface Listing {
   weeksOffered?: string; // e.g., "Every Week", "1 on 1 off", "2 on 2 off"
   cleaningCost?: number;
   damageDeposit?: number;
+  unitMarkup?: number;
 }
 
 export interface PriceBreakdown {
