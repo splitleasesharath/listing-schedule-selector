@@ -1,9 +1,14 @@
-export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-export type RentalType = 'Monthly' | 'Weekly' | 'Nightly';
-export type AlertType = 'error' | 'warning' | 'info' | 'success';
-export type CheckInOutTime = '11:00 am' | '12:00 pm' | '1:00 pm' | '2:00 pm' | '3:00 pm';
-export type ReservationSpan = 6 | 7 | 8 | 9 | 10 | 12 | 13 | 16 | 17 | 20 | 22 | 26; // weeks
+// Type definitions for Listing Schedule Selector
 
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export type RentalType = 'Monthly' | 'Weekly' | 'Nightly';
+
+export type AlertType = 'error' | 'warning' | 'info' | 'success';
+
+export type CheckInOutTime = '11:00 am' | '12:00 pm' | '1:00 pm' | '2:00 pm' | '3:00 pm';
+
+// Day object matching Bubble's Days option set
 export interface Day {
   id: string;
   name: string;
@@ -18,6 +23,7 @@ export interface Day {
   isAvailable: boolean;
 }
 
+// Night object matching Bubble's Nights option set
 export interface Night {
   id: string;
   name: string;
@@ -34,6 +40,7 @@ export interface Night {
   singleLetter: string;
 }
 
+// Pricing List matching Bubble data type
 export interface PricingList {
   combinedMarkup: number;
   fullTimeDiscount: number;
@@ -50,10 +57,9 @@ export interface PricingList {
   weeklyPriceAdjust: number;
 }
 
+// Main Listing interface matching Bubble data type
 export interface Listing {
   id: string;
-  name?: string;
-  displayName?: string;
   firstAvailable: Date;
   lastAvailable: Date;
   numberOfNightsAvailable: number;
@@ -74,14 +80,9 @@ export interface Listing {
   maximumNights: number;
   daysAvailable: DayOfWeek[];
   daysNotAvailable: DayOfWeek[];
-  monthlyHostRate?: number;
-  weeklyHostRate?: number;
-  weeksOffered?: string; // e.g., "Every Week", "1 on 1 off", "2 on 2 off"
-  cleaningCost?: number;
-  damageDeposit?: number;
-  unitMarkup?: number;
 }
 
+// Price breakdown for display
 export interface PriceBreakdown {
   basePrice: number;
   nightlyRate: number;
@@ -92,9 +93,9 @@ export interface PriceBreakdown {
   numberOfNights: number;
   fourWeekRent?: number;
   initialPayment?: number;
-  totalReservationPrice?: number;
 }
 
+// Component state matching Bubble custom states
 export interface ScheduleState {
   selectedDays: Day[];
   notSelectedDays: Day[];
@@ -130,16 +131,35 @@ export interface ScheduleState {
   listingMaximumNights: number | null;
 }
 
+// Error state
 export interface ErrorState {
   hasError: boolean;
   errorType: 'minimum_nights' | 'maximum_nights' | 'availability' | 'contiguity' | 'days_selected' | 'nights_outside_host' | null;
   errorMessage: string;
 }
 
-export interface ZATPriceConfiguration {
-  unusedNightsDiscountMultiplier: number;
-  weeklyPriceAdjust: number;
-  overallSiteMarkup: number;
-  averageDaysPerMonth: number;
-  fullTimeDiscount: number; // For 7 nights
+// Discount interface
+export interface Discount {
+  id: string;
+  type: 'length_of_stay' | 'unused_nights' | 'promotional';
+  value: number;
+  isPercentage: boolean;
+  minNights?: number;
+}
+
+// Markup interface
+export interface Markup {
+  id: string;
+  type: 'service_fee' | 'cleaning' | 'platform';
+  value: number;
+  isPercentage: boolean;
+}
+
+// Toast notification options
+export interface ToastOptions {
+  title: string;
+  content?: string;
+  time?: number;
+  alertType?: AlertType;
+  showOnLive?: boolean;
 }

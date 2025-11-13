@@ -26,7 +26,9 @@ export const DayButton: React.FC<DayButtonProps> = ({
     isSelected && 'selected',
     !day.isAvailable && 'disabled',
     !isClickable && 'not-clickable'
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <button

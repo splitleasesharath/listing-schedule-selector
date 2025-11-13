@@ -1,50 +1,23 @@
-import { Day, Night, DayOfWeek } from '../types';
+import { Day, Night } from '../types';
 import { sortDays, getNextDay, createNight } from './dayHelpers';
 
+// Calculate nights from selected days
 export const calculateNightsFromDays = (days: Day[]): Night[] => {
   if (days.length < 2) return [];
 
   const sorted = sortDays(days);
-  const dayNumbers = sorted.map(d => d.dayOfWeek);
-
-  // Check for wrap-around: both Sunday (0) and Saturday (6) are selected
-  const hasSunday = dayNumbers.includes(0);
-  const hasSaturday = dayNumbers.includes(6);
-
-  if (hasSunday && hasSaturday && days.length > 1 && days.length < 7) {
-    // This is a wrap-around schedule
-    // Find the gap to determine the correct sequence
-    const allDays = [0, 1, 2, 3, 4, 5, 6];
-    const notSelected = allDays.filter(d => !dayNumbers.includes(d));
-
-    if (notSelected.length > 0) {
-      const lastGapDay = Math.max(...notSelected);
-
-      // Reorder days: start from day after gap ends, wrap around
-      const reordered: Day[] = [];
-      for (let i = lastGapDay + 1; i < lastGapDay + 1 + days.length; i++) {
-        const dayNum = (i % 7) as DayOfWeek;
-        const day = sorted.find(d => d.dayOfWeek === dayNum);
-        if (day) reordered.push(day);
-      }
-
-      // Create nights from reordered days (all except last day)
-      const nights: Night[] = [];
-      for (let i = 0; i < reordered.length - 1; i++) {
-        nights.push(createNight(reordered[i].dayOfWeek));
-      }
-      return nights;
-    }
-  }
-
-  // Normal case: create nights from sorted days
   const nights: Night[] = [];
+
+  // Nights are the periods between consecutive days
+  // For example: Mon, Tue, Wed selected = Mon night, Tue night (2 nights)
   for (let i = 0; i < sorted.length - 1; i++) {
     nights.push(createNight(sorted[i].dayOfWeek));
   }
+
   return nights;
 };
 
+// Calculate check-in and check-out days
 export const calculateCheckInCheckOut = (days: Day[]): {
   checkIn: Day | null;
   checkOut: Day | null;
@@ -54,42 +27,77 @@ export const calculateCheckInCheckOut = (days: Day[]): {
   }
 
   const sorted = sortDays(days);
-  const dayNumbers = sorted.map(d => d.dayOfWeek);
-
-  // Check for wrap-around: both Sunday (0) and Saturday (6) are selected
-  const hasSunday = dayNumbers.includes(0);
-  const hasSaturday = dayNumbers.includes(6);
-
-  if (hasSunday && hasSaturday && days.length > 1 && days.length < 7) {
-    // This is a wrap-around schedule
-    // Find the gap in the days (the NOT selected days)
-    const allDays = [0, 1, 2, 3, 4, 5, 6];
-    const notSelected = allDays.filter(d => !dayNumbers.includes(d));
-
-    if (notSelected.length > 0) {
-      // Check-in is the day after the last not-selected day
-      // Check-out is the day before the first not-selected day
-      const lastGapDay = Math.max(...notSelected);
-      const firstGapDay = Math.min(...notSelected);
-
-      // Check-in is day after the gap ends
-      const checkInDayNum = ((lastGapDay + 1) % 7) as DayOfWeek;
-      const checkIn = sorted.find(d => d.dayOfWeek === checkInDayNum) || sorted[0];
-
-      // Check-out is day before the gap starts (wrapping backwards)
-      const checkOutDayNum = ((firstGapDay - 1 + 7) % 7) as DayOfWeek;
-      const checkOut = sorted.find(d => d.dayOfWeek === checkOutDayNum) || sorted[sorted.length - 1];
-
-      return { checkIn, checkOut };
-    }
-  }
-
-  // Normal case (no wrap-around): first sorted day is check-in, last is check-out
   const checkIn = sorted[0];
-  const checkOut = sorted[sorted.length - 1];
+
+  // Check-out is the day after the last selected day
+  const lastDay = sorted[sorted.length - 1];
+  const checkOut = getNextDay(lastDay);
+
   return { checkIn, checkOut };
 };
 
+// Handle Sunday corner case for check-in/check-out
+export const handleSundayTransition = (days: Day[]): {
+  checkInDay: Day;
+  checkOutDay: Day;
+  startNight: number;
+  endNight: number;
+} => {
+  const sorted = sortDays(days);
+  const checkInDay = sorted[0];
+  const lastDay = sorted[sorted.length - 1];
+  const checkOutDay = getNextDay(lastDay);
+
+  // Start night is the first selected day's night
+  const startNight = checkInDay.dayOfWeek;
+
+  // End night is the last night before checkout
+  const endNight = lastDay.dayOfWeek;
+
+  return {
+    checkInDay,
+    checkOutDay,
+    startNight,
+    endNight
+  };
+};
+
+// Calculate unused nights based on available nights
+export const calculateUnusedNights = (
+  availableNights: number,
+  selectedNights: Night[]
+): number => {
+  return Math.max(0, availableNights - selectedNights.length);
+};
+
+// Calculate start and end night numbers
+export const calculateStartEndNightNumbers = (days: Day[]): {
+  startNightNumber: number | null;
+  endNightNumber: number | null;
+} => {
+  if (days.length === 0) {
+    return { startNightNumber: null, endNightNumber: null };
+  }
+
+  const sorted = sortDays(days);
+  const startNightNumber = sorted[0].dayOfWeek;
+  const endNightNumber = sorted[sorted.length - 1].dayOfWeek;
+
+  return { startNightNumber, endNightNumber };
+};
+
+// Calculate days as numbers array
+export const calculateDaysAsNumbers = (days: Day[]): number[] => {
+  return sortDays(days).map(day => day.dayOfWeek);
+};
+
+// Calculate selected nights as numbers
+export const calculateSelectedNightsAsNumbers = (nights: Night[]): number[] => {
+  return nights.map(night => night.nightNumber);
+};
+
+// Count number of selected nights
 export const countSelectedNights = (days: Day[]): number => {
+  // Nights = Days - 1 (because nights are between check-in and check-out)
   return Math.max(0, days.length - 1);
 };

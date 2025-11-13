@@ -1,5 +1,5 @@
 import React from 'react';
-import { Listing, Day, ZATPriceConfiguration } from '../types';
+import { Listing, Day } from '../types';
 import { useScheduleSelector } from '../hooks/useScheduleSelector';
 import { DayButton } from './DayButton';
 import { ErrorOverlay } from './ErrorOverlay';
@@ -12,8 +12,6 @@ interface ListingScheduleSelectorProps {
   limitToFiveNights?: boolean;
   onScheduleSave?: (selectedDays: Day[]) => void;
   showPricing?: boolean;
-  zatConfig?: ZATPriceConfiguration;
-  reservationSpanWeeks?: number;
 }
 
 export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = ({
@@ -21,13 +19,10 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
   initialSelectedDays = [],
   limitToFiveNights = false,
   onScheduleSave,
-  showPricing = true,
-  zatConfig,
-  reservationSpanWeeks = 13
+  showPricing = true
 }) => {
   const {
     selectedDays,
-    selectedNights,
     allDays,
     nightsCount,
     priceBreakdown,
@@ -43,15 +38,14 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
   } = useScheduleSelector({
     listing,
     initialSelectedDays,
-    limitToFiveNights,
-    zatConfig,
-    reservationSpanWeeks
+    limitToFiveNights
   });
 
   const handleSave = () => {
     if (!acceptableSchedule) {
       return;
     }
+
     onScheduleSave?.(selectedDays);
   };
 
@@ -80,29 +74,21 @@ export const ListingScheduleSelector: React.FC<ListingScheduleSelectorProps> = (
       </div>
 
       <div className="selection-info">
-        {selectedDays.length > 0 && (
+        {nightsCount > 0 && (
           <>
             <div className="info-row">
-              <span className="info-label">Days Selected:</span>
-              <span className="info-value">
-                {selectedDays.map(d => d.first3Letters).join(', ')} ({selectedDays.length} days)
-              </span>
-            </div>
-            <div className="info-row">
               <span className="info-label">Nights Selected:</span>
-              <span className="info-value">
-                {selectedNights.map(n => n.first3Letters).join(', ')} ({nightsCount} nights)
-              </span>
+              <span className="info-value">{nightsCount}</span>
             </div>
             {checkInDay && (
               <div className="info-row">
-                <span className="info-label">Check-in Day:</span>
+                <span className="info-label">Check-in:</span>
                 <span className="info-value">{checkInDay.name} at {listing.checkInTime}</span>
               </div>
             )}
             {checkOutDay && (
               <div className="info-row">
-                <span className="info-label">Check-out Day:</span>
+                <span className="info-label">Check-out:</span>
                 <span className="info-value">{checkOutDay.name} at {listing.checkOutTime}</span>
               </div>
             )}

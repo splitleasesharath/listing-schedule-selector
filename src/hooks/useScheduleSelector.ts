@@ -1,47 +1,62 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Day, Listing, Night, PriceBreakdown, ErrorState, ZATPriceConfiguration } from '../types';
-import { validateDaySelection, validateDayRemoval, isContiguous } from '../utils/validators';
-import { calculateNightsFromDays, calculateCheckInCheckOut, countSelectedNights } from '../utils/nightCalculations';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Day, Listing, Night, PriceBreakdown, ErrorState, ScheduleState } from '../types';
+import {
+  validateDaySelection,
+  validateDayRemoval,
+  isContiguous
+} from '../utils/validators';
+import {
+  calculateNightsFromDays,
+  calculateCheckInCheckOut,
+  countSelectedNights,
+  calculateStartEndNightNumbers
+} from '../utils/nightCalculations';
 import { calculatePrice } from '../utils/priceCalculations';
-import { sortDays, getNotSelectedDays, createAllDays, getUnusedNights, createNightsFromDays } from '../utils/dayHelpers';
-
-// Default ZAT configuration
-const DEFAULT_ZAT_CONFIG: ZATPriceConfiguration = {
-  unusedNightsDiscountMultiplier: 0.03,
-  weeklyPriceAdjust: 0,
-  overallSiteMarkup: 0.17,
-  averageDaysPerMonth: 31,
-  fullTimeDiscount: 0.13
-};
+import {
+  sortDays,
+  getNotSelectedDays,
+  createAllDays,
+  getUnusedNights,
+  createNightsFromDays
+} from '../utils/dayHelpers';
 
 interface UseScheduleSelectorProps {
   listing: Listing;
   initialSelectedDays?: Day[];
   limitToFiveNights?: boolean;
-  zatConfig?: ZATPriceConfiguration;
-  reservationSpanWeeks?: number;
+  onSelectionChange?: (days: Day[]) => void;
+  onPriceChange?: (pricing: PriceBreakdown) => void;
+  onScheduleChange?: (state: ScheduleState) => void;
 }
 
 export const useScheduleSelector = ({
   listing,
   initialSelectedDays = [],
   limitToFiveNights = false,
-  zatConfig = DEFAULT_ZAT_CONFIG,
-  reservationSpanWeeks = 13
+  onSelectionChange,
+  onPriceChange,
+  onScheduleChange
 }: UseScheduleSelectorProps) => {
+  // Core selection state
   const [selectedDays, setSelectedDays] = useState<Day[]>(initialSelectedDays);
   const [errorState, setErrorState] = useState<ErrorState>({
     hasError: false,
     errorType: null,
     errorMessage: ''
   });
-  const [isClickable, setIsClickable] = useState(true);
-  const [acceptableSchedule, setAcceptableSchedule] = useState(false);
 
+  // Component state flags
+  const [isClickable, setIsClickable] = useState(true);
+  const [recalculateState, setRecalculateState] = useState(false);
+  const [acceptableSchedule, setAcceptableSchedule] = useState(false);
+  const [autobindListing, setAutobindListing] = useState(false);
+
+  // Create all days based on listing availability
   const allDays = useMemo(() => {
     return createAllDays(listing.daysAvailable);
   }, [listing.daysAvailable]);
 
+  // Calculate derived state using useMemo for performance
   const selectedNights = useMemo(() => {
     return calculateNightsFromDays(selectedDays);
   }, [selectedDays]);
@@ -58,24 +73,101 @@ export const useScheduleSelector = ({
     return countSelectedNights(selectedDays);
   }, [selectedDays]);
 
+  const { startNightNumber, endNightNumber } = useMemo(() => {
+    return calculateStartEndNightNumbers(selectedDays);
+  }, [selectedDays]);
+
   const isSelectionContiguous = useMemo(() => {
     return isContiguous(selectedDays);
   }, [selectedDays]);
 
+  // Calculate pricing
   const priceBreakdown = useMemo(() => {
-    return calculatePrice(selectedNights, listing, zatConfig, reservationSpanWeeks);
-  }, [selectedNights, listing, zatConfig, reservationSpanWeeks]);
+    return calculatePrice(selectedNights, listing);
+  }, [selectedNights, listing]);
 
+  // Calculate unused nights
   const unusedNights = useMemo(() => {
     const allNights = createNightsFromDays(allDays);
     return getUnusedNights(allNights, selectedNights);
   }, [allDays, selectedNights]);
 
+  // Create full schedule state
+  const scheduleState: ScheduleState = useMemo(() => ({
+    selectedDays,
+    notSelectedDays,
+    selectedNights,
+    unusedNights,
+    selectedCheckinDays: selectedDays.filter((_, index) => index === 0),
+    checkInDay: checkIn,
+    checkOutDay: checkOut,
+    startNight: startNightNumber,
+    endNight: endNightNumber,
+    startDayNumber: checkIn?.dayOfWeek ?? null,
+    nightsCount,
+    isContiguous: isSelectionContiguous,
+    acceptableSchedule,
+    autobindListing,
+    limitToFiveNights,
+    recalculateState,
+    actualWeeksDaysAM: [],
+    actualWeeksDaysPM: [],
+    changeListings: [],
+    changePricing: '',
+    labels: [],
+    listingNightlyN: [],
+    monthly: [],
+    priceMultiplier: [],
+    numberOfMonths: null,
+    otherReservation: [],
+    proratedNights: [],
+    reservationSpecificDays: [],
+    guestDesiredUserDate: [],
+    fourWeekRent: priceBreakdown.fourWeekRent ? [priceBreakdown.fourWeekRent] : [],
+    totalReservation: [priceBreakdown.totalPrice],
+    listingMaximumNights: listing.maximumNights
+  }), [
+    selectedDays,
+    notSelectedDays,
+    selectedNights,
+    unusedNights,
+    checkIn,
+    checkOut,
+    startNightNumber,
+    endNightNumber,
+    nightsCount,
+    isSelectionContiguous,
+    acceptableSchedule,
+    autobindListing,
+    limitToFiveNights,
+    recalculateState,
+    priceBreakdown,
+    listing.maximumNights
+  ]);
+
+  // Notify parent components of changes
+  useEffect(() => {
+    onSelectionChange?.(selectedDays);
+  }, [selectedDays, onSelectionChange]);
+
+  useEffect(() => {
+    onPriceChange?.(priceBreakdown);
+  }, [priceBreakdown, onPriceChange]);
+
+  useEffect(() => {
+    onScheduleChange?.(scheduleState);
+  }, [scheduleState, onScheduleChange]);
+
+  // Handle day selection
   const handleDaySelect = useCallback((day: Day): boolean => {
     if (!isClickable) return false;
+
+    // Apply limit to 5 nights if enabled
     const maxNights = limitToFiveNights ? 5 : listing.maximumNights;
     const listingWithLimit = { ...listing, maximumNights: maxNights };
+
     const validation = validateDaySelection(day, selectedDays, listingWithLimit);
+
     if (!validation.isValid) {
       setErrorState({
         hasError: true,
@@ -84,15 +176,22 @@ export const useScheduleSelector = ({
       });
       return false;
     }
+
+    // Add and sort
     const newSelection = sortDays([...selectedDays, day]);
     setSelectedDays(newSelection);
     setErrorState({ hasError: false, errorType: null, errorMessage: '' });
+    setRecalculateState(true);
+
     return true;
   }, [selectedDays, listing, isClickable, limitToFiveNights]);
 
+  // Handle day removal
   const handleDayRemove = useCallback((day: Day): boolean => {
     if (!isClickable) return false;
+
     const validation = validateDayRemoval(day, selectedDays, listing.minimumNights);
+
     if (!validation.isValid) {
       setErrorState({
         hasError: true,
@@ -101,14 +200,19 @@ export const useScheduleSelector = ({
       });
       return false;
     }
+
     const newSelection = selectedDays.filter(d => d.dayOfWeek !== day.dayOfWeek);
     setSelectedDays(newSelection);
     setErrorState({ hasError: false, errorType: null, errorMessage: '' });
+    setRecalculateState(true);
+
     return true;
   }, [selectedDays, listing.minimumNights, isClickable]);
 
+  // Handle day click (toggle selection)
   const handleDayClick = useCallback((day: Day): boolean => {
     const isSelected = selectedDays.some(d => d.dayOfWeek === day.dayOfWeek);
+
     if (isSelected) {
       return handleDayRemove(day);
     } else {
@@ -116,33 +220,61 @@ export const useScheduleSelector = ({
     }
   }, [selectedDays, handleDaySelect, handleDayRemove]);
 
+  // Clear selection
   const clearSelection = useCallback(() => {
     setSelectedDays([]);
     setErrorState({ hasError: false, errorType: null, errorMessage: '' });
+    setRecalculateState(true);
   }, []);
 
+  // Clear error
   const clearError = useCallback(() => {
     setErrorState({ hasError: false, errorType: null, errorMessage: '' });
   }, []);
 
+  // Set clickable state
+  const setClickableState = useCallback((clickable: boolean) => {
+    setIsClickable(clickable);
+  }, []);
+
+  // Check if schedule is acceptable
+  useEffect(() => {
+    const isAcceptable =
+      selectedDays.length >= 2 &&
+      isSelectionContiguous &&
+      nightsCount >= listing.minimumNights;
+
+    setAcceptableSchedule(isAcceptable);
+  }, [selectedDays, isSelectionContiguous, nightsCount, listing.minimumNights]);
+
   return {
+    // State
     selectedDays,
     selectedNights,
     notSelectedDays,
     unusedNights,
     checkInDay: checkIn,
     checkOutDay: checkOut,
+    startNight: startNightNumber,
+    endNight: endNightNumber,
     nightsCount,
     priceBreakdown,
     errorState,
     isClickable,
     isContiguous: isSelectionContiguous,
     acceptableSchedule,
+    recalculateState,
+    scheduleState,
     allDays,
+
+    // Actions
     handleDayClick,
     handleDaySelect,
     handleDayRemove,
     clearSelection,
-    clearError
+    clearError,
+    setClickableState,
+    setRecalculateState,
+    setAutobindListing
   };
 };

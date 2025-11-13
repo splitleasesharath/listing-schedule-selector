@@ -37,13 +37,21 @@ export const ErrorOverlay: React.FC<ErrorOverlayProps> = ({
       <div className="error-overlay" onClick={(e) => e.stopPropagation()}>
         <div className="error-header">
           <h3>{getErrorTitle()}</h3>
-          <button className="error-close" onClick={onClose} aria-label="Close error">×</button>
+          <button
+            className="error-close"
+            onClick={onClose}
+            aria-label="Close error"
+          >
+            ×
+          </button>
         </div>
         <div className="error-content">
           <p>{errorState.errorMessage}</p>
         </div>
         <div className="error-actions">
-          <button className="error-button" onClick={onClose}>I Understand</button>
+          <button className="error-button" onClick={onClose}>
+            I Understand
+          </button>
         </div>
       </div>
     </div>
